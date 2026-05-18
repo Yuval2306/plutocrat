@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PLUTOCRAT — Billionaire Spending Simulator 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#07070F;
+  --s1:#0C0C18;
+  --s2:#111120;
+  --s3:#181828;
+  --s4:#202035;
+  --gold:#C9A84C;
+  --gold2:#E8D49A;
+  --goldDim:rgba(201,168,76,.1);
+  --goldBorder:rgba(201,168,76,.18);
+  --text:#EEEEF2;
+  --t2:#8888A4;
+  --t3:#50506A;
+  --green:#2ECC82;
+  --amber:#F5A623;
+  --red:#FF5050;
+  --sw:360px;
+  --hdr:64px;
+}
+html,body{height:100%;overflow:hidden}
+body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--text);display:flex;flex-direction:column}
+
+/* Background grid */
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(201,168,76,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(201,168,76,.04) 1px,transparent 1px);background-size:56px 56px;pointer-events:none;z-index:0}
+
+/* Header */
+header{height:var(--hdr);display:flex;align-items:center;justify-content:space-between;padding:0 28px;border-bottom:1px solid var(--goldBorder);position:relative;z-index:10;flex-shrink:0;background:var(--bg)}
+.logo{font-family:'Playfair Display',serif;font-size:22px;letter-spacing:.18em;color:var(--gold);user-select:none}
+.logo sub{font-family:'DM Sans',sans-serif;font-size:10px;display:block;letter-spacing:.1em;color:var(--t3);margin-top:1px;font-weight:400}
+.hdr-pill{font-size:11px;color:var(--t2);border:1px solid var(--goldBorder);padding:5px 12px;border-radius:20px;letter-spacing:.04em}
+
+/* Layout */
+.layout{display:flex;flex:1;overflow:hidden;position:relative;z-index:1}
+
+/* Sidebar */
+aside{width:var(--sw);flex-shrink:0;border-right:1px solid var(--goldBorder);display:flex;flex-direction:column;overflow:hidden;background:var(--s1)}
+.sb-hdr{padding:18px 18px 14px;border-bottom:1px solid var(--goldBorder);flex-shrink:0}
+.sb-lbl{font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:var(--t3);margin-bottom:10px}
+.search-wrap{position:relative}
+.search-wrap input{width:100%;background:var(--s3);border:1px solid var(--goldBorder);border-radius:8px;padding:10px 38px 10px 14px;color:var(--text);font-size:13px;font-family:'DM Sans',sans-serif;outline:none;transition:border-color .2s}
+.search-wrap input::placeholder{color:var(--t3)}
+.search-wrap input:focus{border-color:var(--gold)}
+.search-wrap svg{position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--t3);width:15px;height:15px;pointer-events:none}
+.person-list{overflow-y:auto;flex:1;scrollbar-width:thin;scrollbar-color:var(--s4) transparent}
+.person-list::-webkit-scrollbar{width:3px}
+.person-list::-webkit-scrollbar-thumb{background:var(--s4);border-radius:2px}
+.pi{display:flex;align-items:center;gap:10px;padding:9px 18px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.025);transition:background .12s;position:relative}
+.pi:hover{background:var(--goldDim)}
+.pi.active{background:var(--goldDim);border-left:2px solid var(--gold);padding-left:16px}
+.pi-rank{font-size:10px;color:var(--t3);width:22px;text-align:right;flex-shrink:0;font-variant-numeric:tabular-nums}
+.pi-flag{font-size:15px;flex-shrink:0}
+.pi-info{flex:1;min-width:0}
+.pi-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pi-src{font-size:10px;color:var(--t2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pi-worth{font-size:12px;font-weight:600;color:var(--gold);flex-shrink:0;font-variant-numeric:tabular-nums}
+
+/* Main */
+main{flex:1;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;scrollbar-color:var(--s4) transparent;display:flex;flex-direction:column}
+main::-webkit-scrollbar{width:3px}
+main::-webkit-scrollbar-thumb{background:var(--s4)}
+
+/* Empty state */
+.empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:40px}
+.empty-icon{font-size:72px;opacity:.2}
+.empty-title{font-family:'Playfair Display',serif;font-size:26px;color:var(--t2)}
+.empty-sub{font-size:13px;color:var(--t3);text-align:center;max-width:320px;line-height:1.6}
+
+/* Person header */
+.ph{padding:28px 32px 24px;border-bottom:1px solid var(--goldBorder);flex-shrink:0;background:linear-gradient(180deg,var(--s1) 0%,transparent 100%)}
+.ph-top{display:flex;align-items:flex-start;gap:18px;margin-bottom:24px}
+.ph-av{width:58px;height:58px;border-radius:50%;background:var(--s4);border:2px solid var(--goldBorder);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:600;color:var(--gold);flex-shrink:0;letter-spacing:.02em}
+.ph-meta{flex:1}
+.ph-rank{font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:var(--gold);margin-bottom:4px}
+.ph-name{font-family:'Playfair Display',serif;font-size:26px;line-height:1.2;margin-bottom:3px}
+.ph-src{font-size:12px;color:var(--t2)}
+.ph-flag{font-size:36px;flex-shrink:0}
+
+/* Stats grid */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--goldBorder);border:1px solid var(--goldBorder);border-radius:12px;overflow:hidden;margin-bottom:16px}
+.stat{background:var(--s2);padding:14px 18px}
+.stat-lbl{font-size:9px;text-transform:uppercase;letter-spacing:.12em;color:var(--t3);margin-bottom:5px}
+.stat-val{font-size:18px;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.stat-val.gold{color:var(--gold)}
+.stat-val.green{color:var(--green);transition:color .3s}
+.stat-val.spent{color:var(--red)}
+
+/* Progress */
+.prog-track{height:3px;background:var(--s4);border-radius:2px;overflow:hidden;margin-bottom:6px}
+.prog-fill{height:100%;width:0;border-radius:2px;transition:width .4s cubic-bezier(.4,0,.2,1),background .5s}
+.prog-labels{display:flex;justify-content:space-between;font-size:10px;color:var(--t3)}
+
+/* Category tabs */
+.cat-tabs{display:flex;gap:6px;padding:20px 32px 0;flex-wrap:wrap;flex-shrink:0}
+.cat-tab{font-size:11px;padding:5px 12px;border-radius:20px;border:1px solid var(--s4);color:var(--t2);cursor:pointer;transition:all .15s;background:none;font-family:'DM Sans',sans-serif}
+.cat-tab:hover{border-color:var(--goldBorder);color:var(--text)}
+.cat-tab.active{border-color:var(--gold);color:var(--gold);background:var(--goldDim)}
+
+/* Items */
+.items-wrap{padding:16px 32px 24px}
+.items-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(165px,1fr));gap:10px}
+.ic{background:var(--s2);border:1px solid rgba(255,255,255,.055);border-radius:13px;padding:14px;cursor:pointer;transition:all .18s;position:relative;overflow:hidden}
+.ic:hover:not(.dim){border-color:var(--goldBorder);background:var(--s3);transform:translateY(-2px)}
+.ic:active:not(.dim){transform:translateY(0)}
+.ic.dim{opacity:.3;cursor:not-allowed}
+.ic-badge{position:absolute;top:8px;right:8px;background:var(--gold);color:#000;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;letter-spacing:.02em}
+.ic-emoji{font-size:30px;margin-bottom:8px;line-height:1;display:block}
+.ic-name{font-size:12px;font-weight:500;margin-bottom:3px;line-height:1.35}
+.ic-price{font-size:11px;color:var(--gold);margin-bottom:3px;font-weight:600}
+.ic-can{font-size:10px;color:var(--t3)}
+.ic-fact{font-size:10px;color:var(--t2);margin-top:4px;line-height:1.4;display:none}
+.ic:hover .ic-fact:not(.dim){display:block}
+.ic:hover .ic-can:not(.dim){display:none}
+
+/* Cart */
+.cart{margin:0 32px;border-top:1px solid var(--goldBorder);padding:22px 0 32px;flex-shrink:0}
+.cart-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.cart-title{font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:var(--t3)}
+.clear-btn{font-size:11px;color:var(--t3);background:none;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;padding:4px 8px;border-radius:5px;transition:color .15s}
+.clear-btn:hover{color:var(--red)}
+.ci{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.ci-emoji{font-size:18px;flex-shrink:0;width:28px;text-align:center}
+.ci-info{flex:1;min-width:0}
+.ci-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ci-unit{font-size:10px;color:var(--t3)}
+.ci-tot{font-size:13px;font-weight:600;color:var(--gold);flex-shrink:0;font-variant-numeric:tabular-nums}
+.ci-btns{display:flex;gap:4px;flex-shrink:0}
+.qbtn{width:26px;height:26px;border-radius:6px;background:var(--s3);border:1px solid rgba(255,255,255,.07);color:var(--text);cursor:pointer;font-size:16px;line-height:1;display:flex;align-items:center;justify-content:center;transition:all .12s;font-family:'DM Sans',sans-serif}
+.qbtn:hover{background:var(--goldDim);border-color:var(--goldBorder)}
+.cart-sum{display:flex;justify-content:space-between;align-items:baseline;margin-top:14px;padding-top:14px;border-top:1px solid var(--goldBorder)}
+.cart-sum-lbl{font-size:12px;color:var(--t2)}
+.cart-sum-val{font-size:24px;font-weight:700;color:var(--gold);font-variant-numeric:tabular-nums;font-family:'Playfair Display',serif}
+
+/* Responsive */
+@media(max-width:800px){
+  :root{--sw:100%;--hdr:56px}
+  html,body{overflow:auto}
+  .layout{flex-direction:column}
+  aside{width:100%;height:45vh;border-right:none;border-bottom:1px solid var(--goldBorder)}
+  main{overflow:visible}
+  .ph{padding:18px 20px 16px}
+  .items-wrap{padding:12px 20px 20px}
+  .cart{margin:0 20px}
+  .cat-tabs{padding:14px 20px 0}
+  .ph-name{font-size:20px}
+  .stat-val{font-size:15px}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">PLUTOCRAT<sub>Billionaire Spending Simulator · 2026</sub></div>
+  <div class="hdr-pill">📊 Forbes &amp; Bloomberg · May 2026</div>
+</header>
+
+<div class="layout">
+
+<aside>
+  <div class="sb-hdr">
+    <div class="sb-lbl">Top 100 Richest People · 2026</div>
+    <div class="search-wrap">
+      <input type="text" id="searchInput" placeholder="Search name or company..." oninput="filterPeople()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    </div>
+  </div>
+  <div class="person-list" id="personList"></div>
+</aside>
+
+<main id="mainEl">
+  <div class="empty" id="emptyState">
+    <div class="empty-icon">💰</div>
+    <div class="empty-title">Select a Billionaire</div>
+    <div class="empty-sub">Pick someone from the left to start spending their fortune on everything from yachts and private jets to satellites and NFL teams.</div>
+  </div>
+
+  <div id="app" style="display:none;flex-direction:column;min-height:100%">
+    <div class="ph" id="ph">
+      <div class="ph-top">
+        <div class="ph-av" id="phAv"></div>
+        <div class="ph-meta">
+          <div class="ph-rank" id="phRank"></div>
+          <div class="ph-name" id="phName"></div>
+          <div class="ph-src" id="phSrc"></div>
+        </div>
+        <div class="ph-flag" id="phFlag"></div>
+      </div>
+      <div class="stats">
+        <div class="stat"><div class="stat-lbl">Net Worth</div><div class="stat-val gold" id="sWorth">—</div></div>
+        <div class="stat"><div class="stat-lbl">Spent</div><div class="stat-val spent" id="sSpent">$0</div></div>
+        <div class="stat"><div class="stat-lbl">Remaining</div><div class="stat-val green" id="sLeft">—</div></div>
+      </div>
+      <div class="prog-track"><div class="prog-fill" id="pFill"></div></div>
+      <div class="prog-labels"><span id="pPct">0% spent</span><span id="pCount">0 items</span></div>
+    </div>
+
+    <div class="cat-tabs" id="catTabs"></div>
+
+    <div class="items-wrap">
+      <div class="items-grid" id="itemsGrid"></div>
+    </div>
+
+    <div class="cart" id="cartEl" style="display:none">
+      <div class="cart-hdr">
+        <div class="cart-title">🛒 Your Purchases</div>
+        <button class="clear-btn" onclick="clearAll()">✕ Clear all</button>
+      </div>
+      <div id="cartItems"></div>
+      <div class="cart-sum"><span class="cart-sum-lbl">Total Spent</span><span class="cart-sum-val" id="cartTot"></span></div>
+    </div>
+  </div>
+</main>
+
+</div>
+
+<script>
+const B=[
+  {r:1,n:"Elon Musk",w:790,f:"🇺🇸",s:"Tesla, SpaceX, xAI"},
+  {r:2,n:"Larry Page",w:257,f:"🇺🇸",s:"Google / Alphabet"},
+  {r:3,n:"Sergey Brin",w:237,f:"🇺🇸",s:"Google / Alphabet"},
+  {r:4,n:"Jeff Bezos",w:224,f:"🇺🇸",s:"Amazon, Blue Origin"},
+  {r:5,n:"Mark Zuckerberg",w:210,f:"🇺🇸",s:"Meta (Facebook, Instagram)"},
+  {r:6,n:"Larry Ellison",w:190,f:"🇺🇸",s:"Oracle"},
+  {r:7,n:"Bill Gates",w:145,f:"🇺🇸",s:"Microsoft"},
+  {r:8,n:"Warren Buffett",w:140,f:"🇺🇸",s:"Berkshire Hathaway"},
+  {r:9,n:"Jensen Huang",w:130,f:"🇺🇸",s:"Nvidia"},
+  {r:10,n:"Steve Ballmer",w:125,f:"🇺🇸",s:"Microsoft / LA Clippers"},
+  {r:11,n:"Mukesh Ambani",w:120,f:"🇮🇳",s:"Reliance Industries"},
+  {r:12,n:"Gautam Adani",w:110,f:"🇮🇳",s:"Adani Group"},
+  {r:13,n:"Bernard Arnault",w:105,f:"🇫🇷",s:"LVMH (Louis Vuitton, Dior…)"},
+  {r:14,n:"Carlos Slim Helú",w:88,f:"🇲🇽",s:"América Móvil"},
+  {r:15,n:"Michael Bloomberg",w:82,f:"🇺🇸",s:"Bloomberg LP"},
+  {r:16,n:"Jim Walton",w:78,f:"🇺🇸",s:"Walmart"},
+  {r:17,n:"Rob Walton",w:76,f:"🇺🇸",s:"Walmart"},
+  {r:18,n:"Alice Walton",w:74,f:"🇺🇸",s:"Walmart"},
+  {r:19,n:"Françoise Bettencourt Meyers",w:72,f:"🇫🇷",s:"L'Oréal"},
+  {r:20,n:"Amancio Ortega",w:68,f:"🇪🇸",s:"Zara / Inditex"},
+  {r:21,n:"Charles Koch",w:65,f:"🇺🇸",s:"Koch Industries"},
+  {r:22,n:"Julia Koch",w:63,f:"🇺🇸",s:"Koch Industries"},
+  {r:23,n:"Michael Dell",w:62,f:"🇺🇸",s:"Dell Technologies"},
+  {r:24,n:"Phil Knight",w:60,f:"🇺🇸",s:"Nike"},
+  {r:25,n:"Zhong Shanshan",w:58,f:"🇨🇳",s:"Nongfu Spring"},
+  {r:26,n:"MacKenzie Scott",w:56,f:"🇺🇸",s:"Amazon (former)"},
+  {r:27,n:"Stephen Schwarzman",w:52,f:"🇺🇸",s:"Blackstone"},
+  {r:28,n:"Huang Zheng",w:50,f:"🇨🇳",s:"Pinduoduo / Temu"},
+  {r:29,n:"He Xiangjian",w:48,f:"🇨🇳",s:"Midea Group"},
+  {r:30,n:"David Thomson",w:46,f:"🇨🇦",s:"Thomson Reuters"},
+  {r:31,n:"Ken Griffin",w:44,f:"🇺🇸",s:"Citadel"},
+  {r:32,n:"Zhang Yiming",w:42,f:"🇨🇳",s:"ByteDance / TikTok"},
+  {r:33,n:"Tadashi Yanai",w:40,f:"🇯🇵",s:"Uniqlo / Fast Retailing"},
+  {r:34,n:"Dieter Schwarz",w:38,f:"🇩🇪",s:"Lidl & Kaufland"},
+  {r:35,n:"Masayoshi Son",w:36,f:"🇯🇵",s:"SoftBank"},
+  {r:36,n:"Len Blavatnik",w:35,f:"🇺🇸",s:"Access Industries"},
+  {r:37,n:"Thomas Frist Jr.",w:34,f:"🇺🇸",s:"HCA Healthcare"},
+  {r:38,n:"James Simons",w:33,f:"🇺🇸",s:"Renaissance Technologies"},
+  {r:39,n:"Pony Ma",w:32,f:"🇨🇳",s:"Tencent"},
+  {r:40,n:"Klaus-Michael Kühne",w:32,f:"🇩🇪",s:"Kühne + Nagel"},
+  {r:41,n:"Shiv Nadar",w:30,f:"🇮🇳",s:"HCL Technologies"},
+  {r:42,n:"Li Ka-shing",w:30,f:"🇭🇰",s:"CK Hutchison"},
+  {r:43,n:"Miriam Adelson",w:30,f:"🇺🇸",s:"Las Vegas Sands"},
+  {r:44,n:"Vladimir Potanin",w:29,f:"🇷🇺",s:"Norilsk Nickel"},
+  {r:45,n:"Abigail Johnson",w:28,f:"🇺🇸",s:"Fidelity Investments"},
+  {r:46,n:"Dan Gilbert",w:26,f:"🇺🇸",s:"Quicken Loans / Cavaliers"},
+  {r:47,n:"Eric Schmidt",w:25,f:"🇺🇸",s:"Google (former CEO)"},
+  {r:48,n:"Gina Rinehart",w:24,f:"🇦🇺",s:"Hancock Prospecting"},
+  {r:49,n:"Jack Ma",w:22,f:"🇨🇳",s:"Alibaba"},
+  {r:50,n:"Reinhold Würth",w:22,f:"🇩🇪",s:"Würth Group"},
+  {r:51,n:"Andrew Forrest",w:21,f:"🇦🇺",s:"Fortescue Metals"},
+  {r:52,n:"Steve Cohen",w:20,f:"🇺🇸",s:"Point72 / NY Mets"},
+  {r:53,n:"Cyrus Poonawalla",w:20,f:"🇮🇳",s:"Serum Institute"},
+  {r:54,n:"Rupert Murdoch",w:20,f:"🇺🇸",s:"News Corp / Fox"},
+  {r:55,n:"Radhakishan Damani",w:19,f:"🇮🇳",s:"D-Mart"},
+  {r:56,n:"Ray Dalio",w:19,f:"🇺🇸",s:"Bridgewater Associates"},
+  {r:57,n:"Dustin Moskovitz",w:18,f:"🇺🇸",s:"Meta (co-founder), Asana"},
+  {r:58,n:"Eyal Ofer",w:18,f:"🇮🇱",s:"Zodiac Maritime"},
+  {r:59,n:"James Ratcliffe",w:17,f:"🇬🇧",s:"INEOS / Manchester United"},
+  {r:60,n:"Charlene de Carvalho-Heineken",w:17,f:"🇳🇱",s:"Heineken"},
+  {r:61,n:"Susanne Klatten",w:16,f:"🇩🇪",s:"BMW / Altana"},
+  {r:62,n:"Stefan Quandt",w:16,f:"🇩🇪",s:"BMW Group"},
+  {r:63,n:"Stefano Pessina",w:16,f:"🇮🇹",s:"Walgreens Boots Alliance"},
+  {r:64,n:"Lakshmi Mittal",w:16,f:"🇮🇳",s:"ArcelorMittal"},
+  {r:65,n:"Lei Jun",w:16,f:"🇨🇳",s:"Xiaomi"},
+  {r:66,n:"Patrick Collison",w:15,f:"🇺🇸",s:"Stripe"},
+  {r:67,n:"Savitri Jindal",w:15,f:"🇮🇳",s:"OP Jindal Group"},
+  {r:68,n:"Harold Hamm",w:15,f:"🇺🇸",s:"Continental Resources"},
+  {r:69,n:"Uday Kotak",w:15,f:"🇮🇳",s:"Kotak Mahindra Bank"},
+  {r:70,n:"Li Shufu",w:15,f:"🇨🇳",s:"Geely / Volvo"},
+  {r:71,n:"Emmanuel Besnier",w:14,f:"🇫🇷",s:"Lactalis Group"},
+  {r:72,n:"Evan Spiegel",w:14,f:"🇺🇸",s:"Snapchat"},
+  {r:73,n:"Wang Wei",w:14,f:"🇨🇳",s:"SF Express"},
+  {r:74,n:"Daniel Ziff",w:13,f:"🇺🇸",s:"Ziff Davis / Media"},
+  {r:75,n:"Peter Thiel",w:13,f:"🇺🇸",s:"PayPal, Palantir, a16z"},
+  {r:76,n:"Jan Koum",w:13,f:"🇺🇸",s:"WhatsApp (founder)"},
+  {r:77,n:"Bobby Murphy",w:13,f:"🇺🇸",s:"Snapchat (co-founder)"},
+  {r:78,n:"Kumar Birla",w:13,f:"🇮🇳",s:"Aditya Birla Group"},
+  {r:79,n:"William Ding",w:13,f:"🇨🇳",s:"NetEase"},
+  {r:80,n:"John Doerr",w:12,f:"🇺🇸",s:"Kleiner Perkins"},
+  {r:81,n:"Anthony Pratt",w:12,f:"🇦🇺",s:"Visy Industries"},
+  {r:82,n:"Ivan Glasenberg",w:12,f:"🇿🇦",s:"Glencore"},
+  {r:83,n:"Sunil Mittal",w:12,f:"🇮🇳",s:"Bharti Airtel"},
+  {r:84,n:"Liu Qiangdong",w:11,f:"🇨🇳",s:"JD.com"},
+  {r:85,n:"Alisher Usmanov",w:11,f:"🇷🇺",s:"USM Holdings"},
+  {r:86,n:"Marc Andreessen",w:10,f:"🇺🇸",s:"Andreessen Horowitz (a16z)"},
+  {r:87,n:"Jim Breyer",w:10,f:"🇺🇸",s:"Breyer Capital"},
+  {r:88,n:"Robin Li",w:10,f:"🇨🇳",s:"Baidu"},
+  {r:89,n:"Jack Dorsey",w:9,f:"🇺🇸",s:"Twitter/X, Block (Cash App)"},
+  {r:90,n:"Liang Wengen",w:9,f:"🇨🇳",s:"Sany Heavy Industry"},
+  {r:91,n:"Michael Moritz",w:9,f:"🇬🇧",s:"Sequoia Capital"},
+  {r:92,n:"Ben Horowitz",w:8,f:"🇺🇸",s:"Andreessen Horowitz"},
+  {r:93,n:"Zhou Qunfei",w:8,f:"🇨🇳",s:"Lens Technology (Apple screens)"},
+  {r:94,n:"Reed Hastings",w:7,f:"🇺🇸",s:"Netflix"},
+  {r:95,n:"Hiroshi Mikitani",w:7,f:"🇯🇵",s:"Rakuten"},
+  {r:96,n:"Patrick Drahi",w:7,f:"🇫🇷",s:"Altice / Sotheby's"},
+  {r:97,n:"Liu Yongxing",w:7,f:"🇨🇳",s:"East Hope Group"},
+  {r:98,n:"Peter Woo",w:6,f:"🇭🇰",s:"Wheelock & Company"},
+  {r:99,n:"Giuliana Benetton",w:6,f:"🇮🇹",s:"Benetton Group"},
+  {r:100,n:"Tilman Fertitta",w:6,f:"🇺🇸",s:"Landry's / Houston Rockets"},
+];
+
+const ITEMS=[
+  // 🛥️ Transport & Vehicles
+  {c:"Transport",e:"🛥️",n:"Mega Yacht (180m/590ft)",p:600e6,t:"Bigger than most warships — comes with helipad & submarine dock"},
+  {c:"Transport",e:"✈️",n:"Gulfstream G700 Private Jet",p:75e6,t:"Range: 13,890 km non-stop, ultra-quiet cabin for 19"},
+  {c:"Transport",e:"🚁",n:"Sikorsky S-92 VIP Helicopter",p:32e6,t:"Gold-standard executive transport, 19 passengers"},
+  {c:"Transport",e:"🚗",n:"Bugatti Tourbillon",p:4e6,t:"1,800 bhp hybrid, 0–100 in 2.0s, fewer than 250 made"},
+  {c:"Transport",e:"⛵",n:"America's Cup Superyacht",p:120e6,t:"The fastest sailboat money can buy — 50+ knots"},
+  {c:"Transport",e:"🌊",n:"Triton 36000/2 Deep Submarine",p:48e6,t:"Reaches the deepest ocean trench (11km). Yes, really."},
+  {c:"Transport",e:"🚂",n:"Private Train (Orient Express–style)",p:50e6,t:"20 carriages, your own moving palace across continents"},
+  {c:"Transport",e:"🛳️",n:"Luxury Cruise Ship (500 cabins)",p:1.5e9,t:"Charter it, or run your own cruise line"},
+  // 🚀 Space
+  {c:"Space",e:"🛸",n:"Space Tourism Seat (10 min)",p:500e3,t:"Zero gravity, Earth from above — unforgettable"},
+  {c:"Space",e:"🚀",n:"SpaceX Falcon 9 Launch",p:67e6,t:"Put anything (or anyone) into orbit. Full rocket, yours."},
+  {c:"Space",e:"🛰️",n:"Private Satellite",p:300e6,t:"Your own GPS, spy cam, or telecom satellite"},
+  {c:"Space",e:"🌍",n:"Space Station Module (ISS)",p:250e6,t:"An actual room on the International Space Station"},
+  {c:"Space",e:"🌙",n:"Lunar Landing Mission",p:1.2e9,t:"Plant your flag. On the actual Moon."},
+  {c:"Space",e:"🔭",n:"Private Space Telescope",p:1e9,t:"Your personal Hubble. Name the galaxies after yourself."},
+  // 🏠 Real Estate
+  {c:"Real Estate",e:"🏝️",n:"Caribbean Private Island",p:85e6,t:"Your own territory — Necker Island vibes"},
+  {c:"Real Estate",e:"🏰",n:"Loire Valley Chateau (France)",p:50e6,t:"400 years of history, wine cellar included"},
+  {c:"Real Estate",e:"🏠",n:"Beverly Hills Mega-Mansion",p:90e6,t:"10,000+ sqft, infinity pool, 12 bedrooms"},
+  {c:"Real Estate",e:"🌃",n:"NYC Central Park Penthouse",p:60e6,t:"Skyline views, 5 floors, best address on Earth"},
+  {c:"Real Estate",e:"🏔️",n:"Private Alpine Ski Resort",p:150e6,t:"15 private pistes in the Alps. Guests by invite only."},
+  {c:"Real Estate",e:"🌴",n:"Maldives Private Atoll Resort",p:300e6,t:"50 overwater villas, coral reef, private airstrip"},
+  {c:"Real Estate",e:"🏢",n:"Manhattan Skyscraper (80 floors)",p:1.5e9,t:"Prime NYC tower — rent it out or live on every floor"},
+  {c:"Real Estate",e:"🌋",n:"Volcanic Island (Pacific)",p:200e6,t:"Private paradise with natural geothermal pools"},
+  {c:"Real Estate",e:"🏙️",n:"Build Your Own City",p:100e9,t:"Like NEOM — full infrastructure, 500,000 residents"},
+  // ⚽ Sports
+  {c:"Sports",e:"⚽",n:"Premier League Football Club",p:1.2e9,t:"Avg EPL club value ~£1.5B — play in the Champions League"},
+  {c:"Sports",e:"🏈",n:"NFL Franchise (average)",p:6.5e9,t:"Average NFL franchise valued at $6.5B in 2026"},
+  {c:"Sports",e:"🏎️",n:"Formula 1 Racing Team",p:1.5e9,t:"Race in Monaco, Monza & Abu Dhabi every year"},
+  {c:"Sports",e:"🏀",n:"NBA Team (average value)",p:4e9,t:"Average NBA franchise: $4B — court-side forever"},
+  {c:"Sports",e:"🏒",n:"NHL Team + Arena",p:1.2e9,t:"Hockey, concerts, your own arena to fill"},
+  // 🎬 Entertainment
+  {c:"Entertainment",e:"🎪",n:"Theme Park (Disney-scale)",p:5e9,t:"50M visitors/year — your own Magic Kingdom"},
+  {c:"Entertainment",e:"🎬",n:"Hollywood Studio (Lionsgate-level)",p:15e9,t:"Films, series, distribution — full entertainment empire"},
+  {c:"Entertainment",e:"🎵",n:"Major Music Label",p:3e9,t:"Like buying Atlantic Records — own the hits"},
+  {c:"Entertainment",e:"🎮",n:"AAA Video Game Studio",p:8e9,t:"Next Call of Duty? That's yours to greenlight."},
+  {c:"Entertainment",e:"🎰",n:"Las Vegas Casino Resort",p:2e9,t:"Full resort — like building a new Bellagio"},
+  // 💎 Art & Luxury
+  {c:"Luxury & Art",e:"🎨",n:"Picasso Masterpiece",p:180e6,t:"Les Femmes d'Alger sold for $179.4M in 2015"},
+  {c:"Luxury & Art",e:"💎",n:"100-Carat Flawless Blue Diamond",p:25e6,t:"One of 5 ever graded flawless — museum-worthy"},
+  {c:"Luxury & Art",e:"🍷",n:"Bordeaux Grand Cru Vineyard",p:80e6,t:"Château Pétrus territory — $3,000/bottle average"},
+  {c:"Luxury & Art",e:"🐎",n:"Kentucky Derby Thoroughbred Stable",p:100e6,t:"20 prize racehorses + training facility"},
+  // 🏦 Business & Power
+  {c:"Power Moves",e:"🏦",n:"Buy a Mid-Size Bank",p:20e9,t:"Instant financial empire — lend to nations"},
+  {c:"Power Moves",e:"🤖",n:"Acquire an AI Company",p:10e9,t:"The future of intelligence is for sale"},
+  {c:"Power Moves",e:"🌿",n:"Amazon Rainforest (1,000 km²)",p:20e6,t:"Save the planet AND own it — carbon credit machine"},
+  {c:"Power Moves",e:"🛡️",n:"Private Security Army (1yr)",p:500e6,t:"2,000 trained operatives, global deployment"},
+  {c:"Power Moves",e:"🌞",n:"1GW Solar Farm",p:1e9,t:"Power 750,000 homes. Permanently."},
+  {c:"Power Moves",e:"🗺️",n:"Buy Greenland (Trump-style offer)",p:1e12,t:"Asking price: ~$1 trillion. Even Elon can't."},
+  // 🦁 Fun & Wild
+  {c:"Wild Cards",e:"🦁",n:"Private Zoo (exotic & legal)",p:25e6,t:"Lions, tigers, penguins — Tiger King, but classy"},
+  {c:"Wild Cards",e:"🎠",n:"Private Amusement Park",p:500e6,t:"Your own rides, open whenever you want"},
+  {c:"Wild Cards",e:"🚀",n:"Mars Mission Seat (2027 est.)",p:50e6,t:"SpaceX Mars colonist ticket — estimated price"},
+  {c:"Wild Cards",e:"🧬",n:"Personal Genome Clinic",p:200e6,t:"Cure your own diseases — longevity lab"},
+  {c:"Wild Cards",e:"🏛️",n:"Build a University",p:5e9,t:"Harvard took 400 years. You could start tomorrow."},
+];
+
+// State
+let sel=null, cart=[], activeCat='All';
+
+// Init people list
+const pl=document.getElementById('personList');
+function buildList(query=''){
+  pl.innerHTML='';
+  B.forEach((b,i)=>{
+    if(query&&!b.n.toLowerCase().includes(query)&&!b.s.toLowerCase().includes(query))return;
+    const d=document.createElement('div');
+    d.className='pi'+(sel&&sel.r===b.r?' active':'');
+    d.innerHTML=`<span class="pi-rank">${b.r}</span><span class="pi-flag">${b.f}</span><div class="pi-info"><div class="pi-name">${b.n}</div><div class="pi-src">${b.s}</div></div><span class="pi-worth">$${b.w}B</span>`;
+    d.onclick=()=>pick(b);
+    pl.appendChild(d);
+  });
+}
+buildList();
+
+function filterPeople(){buildList(document.getElementById('searchInput').value.toLowerCase())}
+
+// Category tabs
+const cats=['All',...[...new Set(ITEMS.map(x=>x.c))]];
+function buildCatTabs(){
+  const tb=document.getElementById('catTabs');
+  tb.innerHTML='';
+  cats.forEach(c=>{
+    const b=document.createElement('button');
+    b.className='cat-tab'+(c===activeCat?' active':'');
+    b.textContent=c;
+    b.onclick=()=>{activeCat=c;buildCatTabs();renderItems()};
+    tb.appendChild(b);
+  });
+}
+
+function pick(b){
+  sel=b; cart=[];
+  document.getElementById('emptyState').style.display='none';
+  const app=document.getElementById('app');
+  app.style.display='flex';
+  document.getElementById('phAv').textContent=initials(b.n);
+  document.getElementById('phRank').textContent=`#${b.r} Richest Person in the World`;
+  document.getElementById('phName').textContent=b.n;
+  document.getElementById('phSrc').textContent=b.s;
+  document.getElementById('phFlag').textContent=b.f;
+  buildCatTabs();
+  renderAll();
+  buildList(document.getElementById('searchInput').value.toLowerCase());
+  document.getElementById('mainEl').scrollTop=0;
+}
+
+function fmt(n){
+  if(n>=1e12)return'$'+(n/1e12).toFixed(2)+'T';
+  if(n>=1e9)return'$'+(n/1e9).toFixed(1)+'B';
+  if(n>=1e6)return'$'+Math.round(n/1e6).toLocaleString()+'M';
+  if(n>=1e3)return'$'+(n/1e3).toFixed(0)+'K';
+  return'$'+n.toLocaleString();
+}
+
+function initials(n){return n.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase()}
+
+function totalSpent(){return cart.reduce((s,c)=>s+c.p*c.q,0)}
+
+function renderAll(){renderStats();renderItems();renderCart()}
+
+function renderStats(){
+  if(!sel)return;
+  const worth=sel.w*1e9,spent=totalSpent(),left=Math.max(0,worth-spent);
+  const pct=Math.min(100,spent/worth*100);
+  document.getElementById('sWorth').textContent='$'+sel.w+'B';
+  document.getElementById('sSpent').textContent=fmt(spent);
+  document.getElementById('sLeft').textContent=fmt(left);
+  const fill=document.getElementById('pFill');
+  fill.style.width=pct.toFixed(2)+'%';
+  fill.style.background=pct<50?'var(--gold)':pct<80?'var(--amber)':'var(--red)';
+  document.getElementById('pPct').textContent=pct.toFixed(1)+'% spent';
+  const tot=cart.reduce((s,c)=>s+c.q,0);
+  document.getElementById('pCount').textContent=tot+' item'+(tot===1?'':'s')+' purchased';
+  const lv=document.getElementById('sLeft');
+  lv.style.color=left<worth*0.1?'var(--red)':left<worth*0.3?'var(--amber)':'var(--green)';
+}
+
+function renderItems(){
+  if(!sel)return;
+  const left=Math.max(0,sel.w*1e9-totalSpent());
+  const grid=document.getElementById('itemsGrid');
+  grid.innerHTML='';
+  ITEMS.forEach(item=>{
+    if(activeCat!=='All'&&item.c!==activeCat)return;
+    const cartItem=cart.find(c=>c.n===item.n);
+    const qty=cartItem?cartItem.q:0;
+    const can=left>=item.p;
+    const maxBuy=can?Math.floor(left/item.p):0;
+    const d=document.createElement('div');
+    d.className='ic'+(can?'':' dim');
+    d.innerHTML=`
+      ${qty>0?`<div class="ic-badge">×${qty}</div>`:''}
+      <span class="ic-emoji">${item.e}</span>
+      <div class="ic-name">${item.n}</div>
+      <div class="ic-price">${fmt(item.p)}</div>
+      <div class="ic-can">${can?(maxBuy>1?`Can buy ×${maxBuy.toLocaleString()}`:'Can afford 1'):'Cannot afford'}</div>
+      <div class="ic-fact">${item.t}</div>
+    `;
+    if(can)d.onclick=()=>addItem(item);
+    grid.appendChild(d);
+  });
+}
+
+function renderCart(){
+  const cartEl=document.getElementById('cartEl');
+  if(cart.length===0){cartEl.style.display='none';return}
+  cartEl.style.display='block';
+  const list=document.getElementById('cartItems');
+  list.innerHTML='';
+  cart.forEach(item=>{
+    const d=document.createElement('div');
+    d.className='ci';
+    d.innerHTML=`
+      <span class="ci-emoji">${item.e}</span>
+      <div class="ci-info"><div class="ci-name">${item.n}</div><div class="ci-unit">${fmt(item.p)} each · qty ${item.q}</div></div>
+      <span class="ci-tot">${fmt(item.p*item.q)}</span>
+      <div class="ci-btns">
+        <button class="qbtn" onclick="adjItem('${item.n}',-1)" title="Remove one">−</button>
+        <button class="qbtn" onclick="adjItem('${item.n}',1)" title="Add one">+</button>
+      </div>
+    `;
+    list.appendChild(d);
+  });
+  document.getElementById('cartTot').textContent=fmt(totalSpent());
+}
+
+function addItem(item){
+  const left=Math.max(0,sel.w*1e9-totalSpent());
+  if(left<item.p)return;
+  const ex=cart.find(c=>c.n===item.n);
+  if(ex)ex.q++;
+  else cart.push({...item,q:1});
+  renderAll();
+}
+
+function adjItem(name,delta){
+  const idx=cart.findIndex(c=>c.n===name);
+  if(idx===-1)return;
+  if(delta===1){
+    const left=Math.max(0,sel.w*1e9-totalSpent());
+    if(left<cart[idx].p)return;
+    cart[idx].q++;
+  } else {
+    cart[idx].q--;
+    if(cart[idx].q<=0)cart.splice(idx,1);
+  }
+  renderAll();
+}
+
+function clearAll(){cart=[];renderAll()}
+</script>
+</body>
+</html>
